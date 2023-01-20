@@ -1,3 +1,8 @@
+import numpy as np
+from time import time
+
+from tmu.models.classification.vanilla_classifier import TMClassifier
+
 import os
 import numpy as np
 import pandas
@@ -5,7 +10,6 @@ import pycuda
 import pandas as pd
 import pycuda
 import struct
-from PyTsetlinMachineCUDA.tm import *
 import random
 import math
 import openpyxl
@@ -142,66 +146,24 @@ X_test = X_all_data[math.floor(count * split):]
 Y_test = Y_all_data[math.floor(count * split):]
 print("Done splitting")
 print("Initializing variables and starting TM...")
-# initialize hyperparameters and start the training loop. Multiple values for S and T will result in a full permutation, useful for grid search for param optimization.
-S = [10]  # S-value
-Clauses = 50  # number of clauses to generate / to make each classification vote
-T = [30]  # T-value
-Epochs = 100
-Batch_size = 100
 
-wandb.init(project="IoTSecurity-TestWandb")
+wandb.init(project="IoTSecurity-TMUTesting")
 
-wandb.config = {
-    "forget value": S,
-    "epochs": Epochs,
-    "Threshold": T,
-    "batch_size": Batch_size,
-    "clauses": Clauses
-}
+print("\nAccuracy over 2 epochs:\n")
 
-print("# of labels: ", len(labels_all_data_set), labels_all_data_set)
-for s_ in S:
-    for t_ in T:
-        # Start training
-        print("Running clauses:" + str(Clauses) + ", T:" + str(t_) + ", S:" + str(s_))  # status report to the console
-        tm = MultiClassTsetlinMachine(Clauses, t_, s_,
-                                      boost_true_positive_feedback=0)  # define the TM with above params
-        tm.fit(X_train, Y_train, epochs=Epochs, batch_size=Batch_size)  # train the TM for 50 epochs on training data
-        print("Training done, predicting...")
-        # Training done, predict for each piece of test data
-        Prediction = tm.predict(X_test)
-        print("Predictions done, calculating score---")
-        Total = 0
-        Correct = 0
-        conf_matr = confusion_matrix
-        # For each test data item, check if correct prediction
-        for test_data_sample in range(len(X_test)):
-            Total += 1
-            if Prediction[test_data_sample] == Y_test[test_data_sample]:  # if correct guess:
-                Correct += 1
-            conf_matr[labels_all_data_set[Prediction[test_data_sample]]][labels_all_data_set[
-                Y_test[test_data_sample]]] += 1  # update confusion matrix for the prediction and truth value
-        for key in conf_matr.keys():
-            for key2 in conf_matr.keys():
-                confusion_matrix[key][key2] = confusion_matrix[key][key2] / Total
-        # Export the conusion matrix to an excel spreadsheet.
-        dict1 = confusion_matrix
-        df = pd.DataFrame(data=dict1, index=list(confusion_matrix.keys()))
-        confMat = wandb.Table(dataframe=df)
+tm = TMClassifier(2000, 5000, 10.0, max_included_literals=24, platform='CUDA', weighted_clauses=True)
+epochs = 10
+for i in range(epochs):
+    start_training = time()
+    tm.fit(X_train, Y_train)
+    stop_training = time()
 
-        df.to_excel("uberbalance results/new_best/data.xlsx")
-        # Print out analytics and write the results + hyperparameter configuration to a text-file. Note: It makes one file per parameter configuration.
-        print("count", count)
-        print("Accuracy: ", 100 * Correct / Total, "%")
-        path = "uberbalance results/new_best/S-" + str(s_) + "_T-" + str(t_) + "_Clauses-" + str(
-            Clauses) + "_Epochs-" + str(Epochs) + "_BatchSize-" + str(Batch_size) + ".txt"
-        accuracy = 100 * Correct / Total
-        wandb.log({"Accuracy": accuracy})
-        wandb.log({"Confusion Matrix": confMat})
-        file = open(path, "w")
-        file.write("Results: \n")
-        file.write("Dataset: Monday and Wednesday.\n")
-        file.write("Params: S: " + str(s_) + ", T:" + str(t_) + ", Clauses:" + str(Clauses) + ", Epochs: " + str(
-            Epochs) + "\n")
-        file.write("Accuracy: " + str(100 * Correct / Total) + "% \n")
-        file.close()
+    start_testing = time()
+    result = 100 * (tm.predict(X_test) == Y_test).mean()
+    loss = 100 - result
+    stop_testing = time()
+    traintime = stop_training - start_training
+    testtime = stop_testing - start_testing
+    wandb.log({"Accuracy": result, "Loss": loss, "Training duration": traintime, "Testing Duration": testtime})
+    print("#%d Accuracy: %.2f%% Training: %.2fs Testing: %.2fs" % (i + 1, result, traintime, testtime))
+
