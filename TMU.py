@@ -18,7 +18,7 @@ import wandb
 
 def binary(num):  # converts a float to binary, 8 bits
     '''
-    Function for float to binary from here:
+    Function for float to binary from here: 
     https://stackoverflow.com/questions/16444726/binary-representation-of-float-in-python-bits-not-hex
     '''
     return ''.join('{:0>8b}'.format(c) for c in struct.pack('!f', num))
@@ -66,7 +66,7 @@ def iot_data_to_binary_list(path, max_bits, database, registry):
         datapoint = []  # empty list to hold the features of each row
         for item in row:  # for each value in a row
             datapoint.append(item)  # add it to the list of features for this row
-        data_values.append(datapoint)  # add the final list of features for this row to the processed dataset
+        data_values.append(datapoint)  # add the final list of features for this row to the processed dataset  
 
     for item in data_values:  # for each dataset item
         values = item[0:-1]
@@ -149,10 +149,9 @@ print("Initializing variables and starting TM...")
 
 wandb.init(project="IoTSecurity-TMUTesting")
 
-print("\nAccuracy over 2 epochs:\n")
-
 tm = TMClassifier(2000, 5000, 10.0, max_included_literals=24, platform='CUDA', weighted_clauses=True)
-epochs = 10
+epochs = 20
+print("\nAccuracy over " + str(epochs) + " epochs:\n")
 for i in range(epochs):
     start_training = time()
     tm.fit(X_train, Y_train)
@@ -167,3 +166,23 @@ for i in range(epochs):
     wandb.log({"Accuracy": result, "Loss": loss, "Training duration": traintime, "Testing Duration": testtime})
     print("#%d Accuracy: %.2f%% Training: %.2fs Testing: %.2fs" % (i + 1, result, traintime, testtime))
 
+Prediction = tm.predict(X_test)
+print("Predictions done, calculating score---")
+Total = 0
+Correct = 0
+conf_matr = confusion_matrix
+# For each test data item, check if correct prediction
+for test_data_sample in range(len(X_test)):
+    Total += 1
+    if Prediction[test_data_sample] == Y_test[test_data_sample]:  # if correct guess:
+        Correct += 1
+    conf_matr[labels_all_data_set[Prediction[test_data_sample]]][labels_all_data_set[
+        Y_test[test_data_sample]]] += 1  # update confusion matrix for the prediction and truth value
+for key in conf_matr.keys():
+    for key2 in conf_matr.keys():
+        confusion_matrix[key][key2] = confusion_matrix[key][key2] / Total
+        # Export the conusion matrix to an excel spreadsheet.
+dict1 = confusion_matrix
+df = pd.DataFrame(data=dict1, index=list(confusion_matrix.keys()))
+confMat = wandb.Table(dataframe=df)
+wandb.log({"Confusion Matrix": confMat})
