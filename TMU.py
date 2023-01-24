@@ -8,12 +8,13 @@ import numpy as np
 import pandas
 #import pycuda
 import pandas as pd
-#import pycuda
+import pycuda
 import struct
 import random
 import math
 #import openpyxl
 import wandb
+from sklearn.datasets import fetch_openml
 
 
 def binary(num):  # converts a float to binary, 8 bits
@@ -151,6 +152,7 @@ print("Done converting to numpy arrays")
 # split data into training and testing sets with the given split
 count = len(X_all_data)
 split = 0.7
+
 print("Splitting into training/test with a ", 100 * split, "% split...")
 X_train = X_all_data[0:math.floor(count * split)]
 Y_train = Y_all_data[0:math.floor(count * split)]
@@ -162,11 +164,16 @@ print("Initializing variables and starting TM...")
 
 wandb.init(project="IoTSecurity-TMUTesting")
 
-
-
+s = 10.0
+T = 5000
+clauses = 2000
+max_literals = 32
 epochs = 20
+wandb.log({"s":s,"T":T,"clauses":clauses,"max literals":max_literals,"epochs":epochs})
+
+
 print("\nAccuracy over " + str(epochs) + " epochs:\n")
-tm = TMClassifier(2000, 5000, 10.0, max_included_literals=24, platform='CPU', weighted_clauses=True)
+tm = TMClassifier(number_of_clauses=clauses, T=T, s=s, max_included_literals=max_literals, platform='CPU', weighted_clauses=True)
 for i in range(epochs):
     start_training = time()
     tm.fit(X_train, Y_train)
