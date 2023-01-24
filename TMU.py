@@ -6,13 +6,13 @@ from tmu.models.classification.vanilla_classifier import TMClassifier
 import os
 import numpy as np
 import pandas
-import pycuda
+#import pycuda
 import pandas as pd
-import pycuda
+#import pycuda
 import struct
 import random
 import math
-import openpyxl
+#import openpyxl
 import wandb
 
 
@@ -53,6 +53,10 @@ def iot_data_to_binary_list(path, max_bits, database, registry):
     print("Binarizing...")
     data_values = []
     data = pandas.read_csv(path)  # read data csv
+
+
+    # output: dictionary with keys "x_train/x_test" for data and "y_train/y_test" for labels
+    # cicids output:
     # Duplicate the registry, add new keys to it
     reg = registry
     db = database
@@ -83,9 +87,14 @@ def iot_data_to_binary_list(path, max_bits, database, registry):
 
 
 ''' Main run begins here'''
+
+import tmu.datasets
+kdd = tmu.datasets.KDD99(split=0.7, shuffle=True)
+dataset = kdd.retrieve_dataset()
+
 data_paths = ["data/Wednesday-workingHours.pcap_ISCX.csv"]  # path to data files
 maximum_bits = 16  # max bits to use for each dataset value
-max_data = 100000  # maximum number of dataset entries to process
+max_data = 430000  # maximum number of dataset entries to process
 minimum_data_in_category = 5000  # threshold for dataset category size for it to be used in determining number of elements per dataset to use
 all_data_dict = {}  # dictionary to hold all the data
 class_registry = {}  # dictionary to hold the number of data in each category
@@ -95,14 +104,18 @@ confusion_matrix = {}  # dictionary to keep the values for the confusion matrix
 # Read files and create data
 for path in data_paths:
     print("Pre-processing data from", path)
-    all_data_dict, class_registry = iot_data_to_binary_list(path, maximum_bits, all_data_dict, class_registry)
+    #all_data_dict, class_registry = iot_data_to_binary_list(path, maximum_bits, all_data_dict, class_registry)
 
+all_data_dict, class_registry = kdd.booleanizer(dataset=dataset, max_bits=maximum_bits, database=all_data_dict, registry=class_registry)
 # Count the size of each category above the threshold and find the size of the smallest one
 counts = []
 for key in class_registry.keys():
+    print(key)
     number_of_that_class = class_registry[key]  # get registry data for <key> category
     if number_of_that_class > minimum_data_in_category:  # if number of entries for <key> category is above threshold, use it in list of counts
         counts.append(number_of_that_class)
+
+
 smallest_count = min(counts)  # get smallest count above threshold
 # get that many elements from each category. If not enough elements in a given category, just take what is there.
 # Limit total number of elements to the max data param set earlier
@@ -149,9 +162,11 @@ print("Initializing variables and starting TM...")
 
 wandb.init(project="IoTSecurity-TMUTesting")
 
-tm = TMClassifier(2000, 5000, 10.0, max_included_literals=24, platform='CUDA', weighted_clauses=True)
+
+
 epochs = 20
 print("\nAccuracy over " + str(epochs) + " epochs:\n")
+tm = TMClassifier(2000, 5000, 10.0, max_included_literals=24, platform='CPU', weighted_clauses=True)
 for i in range(epochs):
     start_training = time()
     tm.fit(X_train, Y_train)
