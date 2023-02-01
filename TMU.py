@@ -4,11 +4,11 @@ from time import time
 from tmu.models.classification.vanilla_classifier import TMClassifier
 
 import os
-import numpy as np
+#import numpy as np
 import pandas
 #import pycuda
 import pandas as pd
-import pycuda
+#import pycuda
 import struct
 import random
 import math
@@ -90,10 +90,10 @@ def iot_data_to_binary_list(path, max_bits, database, registry):
 ''' Main run begins here'''
 
 import tmu.datasets
-kdd = tmu.datasets.KDD99(split=0.7, shuffle=True)
-dataset = kdd.retrieve_dataset()
+'''kdd = tmu.datasets.KDD99(split=0.7, shuffle=True)
+dataset = kdd.retrieve_dataset()'''
 
-data_paths = ["data/Wednesday-workingHours.pcap_ISCX.csv"]  # path to data files
+'''data_paths = ["data/Wednesday-workingHours.pcap_ISCX.csv"]  # path to data files
 maximum_bits = 16  # max bits to use for each dataset value
 max_data = 430000  # maximum number of dataset entries to process
 minimum_data_in_category = 5000  # threshold for dataset category size for it to be used in determining number of elements per dataset to use
@@ -160,9 +160,17 @@ Y_train = Y_all_data[0:math.floor(count * split)]
 X_test = X_all_data[math.floor(count * split):]
 Y_test = Y_all_data[math.floor(count * split):]
 print("Done splitting")
-print("Initializing variables and starting TM...")
+print("Initializing variables and starting TM...")'''
 
-wandb.init(project="IoTSecurity-TMUTesting")
+
+cicids = tmu.datasets.CICIDS2017(split=0.7, shuffle=True, balance=True, binarize=True, bits_per_entry = 16, max_data_entries=450000, data_category_threshold = 5000)
+dataset2 = cicids.retrieve_dataset("Data/Monday-WorkingHours.pcap_ISCX.csv")
+X_train=dataset2["x_train"]
+Y_train=dataset2["y_train"]
+X_test=dataset2["x_test"]
+Y_test=dataset2["y_test"]
+
+wandb.init(project="IoTSecurity-TMUTesting-cicids2017")
 
 s = 10.0
 T = 5000
@@ -192,19 +200,9 @@ Prediction = tm.predict(X_test)
 print("Predictions done, calculating score---")
 Total = 0
 Correct = 0
-conf_matr = confusion_matrix
+#conf_matr = confusion_matrix
 # For each test data item, check if correct prediction
 for test_data_sample in range(len(X_test)):
     Total += 1
     if Prediction[test_data_sample] == Y_test[test_data_sample]:  # if correct guess:
         Correct += 1
-    conf_matr[labels_all_data_set[Prediction[test_data_sample]]][labels_all_data_set[
-        Y_test[test_data_sample]]] += 1  # update confusion matrix for the prediction and truth value
-for key in conf_matr.keys():
-    for key2 in conf_matr.keys():
-        confusion_matrix[key][key2] = confusion_matrix[key][key2] / Total
-        # Export the conusion matrix to an excel spreadsheet.
-dict1 = confusion_matrix
-df = pd.DataFrame(data=dict1, index=list(confusion_matrix.keys()))
-confMat = wandb.Table(dataframe=df)
-wandb.log({"Confusion Matrix": confMat})
