@@ -162,6 +162,9 @@ Y_test = Y_all_data[math.floor(count * split):]
 print("Done splitting")
 print("Initializing variables and starting TM...")'''
 
+nsl = tmu.datasets.NSLKDD(split=0.7, shuffle=True)
+ndataset3 = nsl.retrieve_dataset(path_to_data_directory='Data')
+exit()
 
 cicids = tmu.datasets.CICIDS2017(split=0.7, shuffle=True, balance=True, binarize=True, bits_per_entry = 16, max_data_entries=450000, data_category_threshold = 5000)
 dataset2 = cicids.retrieve_dataset("Data/Monday-WorkingHours.pcap_ISCX.csv")
