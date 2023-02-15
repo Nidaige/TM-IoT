@@ -1,13 +1,16 @@
 import numpy as np
 from time import time
-
-from tmu.models.classification.vanilla_classifier import TMClassifier
-
+#import tmu
+#from tmu.models.classification.vanilla_classifier import TMClassifier
+import tmu.tmu as tmu
+import tmu.tmu.datasets
+import tmu.tmu.models.classification.vanilla_classifier
 import os
 #import numpy as np
 import pandas
 #import pycuda
 import pandas as pd
+import tensorflow
 #import pycuda
 import struct
 import random
@@ -89,121 +92,86 @@ def iot_data_to_binary_list(path, max_bits, database, registry):
 
 ''' Main run begins here'''
 
-import tmu.datasets
-'''kdd = tmu.datasets.KDD99(split=0.7, shuffle=True)
-dataset = kdd.retrieve_dataset()'''
-
-'''data_paths = ["data/Wednesday-workingHours.pcap_ISCX.csv"]  # path to data files
-maximum_bits = 16  # max bits to use for each dataset value
-max_data = 430000  # maximum number of dataset entries to process
-minimum_data_in_category = 5000  # threshold for dataset category size for it to be used in determining number of elements per dataset to use
-all_data_dict = {}  # dictionary to hold all the data
-class_registry = {}  # dictionary to hold the number of data in each category
-all_data = [[], []]  # list of two lists to hold the binarized data and its label respectively
-smallest_count = 0  # initialize variable for size of smallest dataset category
-confusion_matrix = {}  # dictionary to keep the values for the confusion matrix
-# Read files and create data
-for path in data_paths:
-    print("Pre-processing data from", path)
-    #all_data_dict, class_registry = iot_data_to_binary_list(path, maximum_bits, all_data_dict, class_registry)
-
-all_data_dict, class_registry = kdd.booleanizer(dataset=dataset, max_bits=maximum_bits, database=all_data_dict, registry=class_registry)
-# Count the size of each category above the threshold and find the size of the smallest one
-counts = []
-for key in class_registry.keys():
-    print(key)
-    number_of_that_class = class_registry[key]  # get registry data for <key> category
-    if number_of_that_class > minimum_data_in_category:  # if number of entries for <key> category is above threshold, use it in list of counts
-        counts.append(number_of_that_class)
-
-
-smallest_count = min(counts)  # get smallest count above threshold
-# get that many elements from each category. If not enough elements in a given category, just take what is there.
-# Limit total number of elements to the max data param set earlier
-for n in range(min(math.floor(max_data / len(class_registry.keys())), smallest_count)):
-    for key in all_data_dict.keys():
-        number_of_that_class = class_registry[key]
-        if n < number_of_that_class:  # if there aren't enough entries in <key> category to reach n, just take what's there
-            all_data[0].append(all_data_dict[key][n])
-            all_data[1].append(key)
-            confusion_matrix[key] = {}
-# initialize confusion matrix keys
-for key in confusion_matrix.keys():
-    for key2 in confusion_matrix.keys():
-        confusion_matrix[key][key2] = 0
-
-print("data distribution:")
-print(class_registry)
-# shuffle the dataset order while keeping data entries and their labels paralell
-X_all_data, Y_all_data = shuffle_dataset(all_data)
-
-print("Converting String labels to numbers...")
-# make a set of all the labels in the dataset to translate the literal String values of the labels to integer values representing each class
-labels_all_data_set = list(set(Y_all_data))  # create set of ALL string-labels
-for i in range(len(Y_all_data)):  # for each element
-    Y_all_data[i] = labels_all_data_set.index(Y_all_data[i])  # assign the true index to each data label Y
-
-print("Done converting labels.")
-print("Converting to numpy arrays...")
-# Convert data and labels to numpy arrays for the Tsetlin Machine object
-X_all_data = np.array(X_all_data).astype(float)
-Y_all_data = np.array(Y_all_data)
-print("Done converting to numpy arrays")
-# split data into training and testing sets with the given split
-count = len(X_all_data)
-split = 0.7
-
-print("Splitting into training/test with a ", 100 * split, "% split...")
-X_train = X_all_data[0:math.floor(count * split)]
-Y_train = Y_all_data[0:math.floor(count * split)]
-
-X_test = X_all_data[math.floor(count * split):]
-Y_test = Y_all_data[math.floor(count * split):]
-print("Done splitting")
-print("Initializing variables and starting TM...")'''
-
-nsl = tmu.datasets.NSLKDD(split=0.7, shuffle=True)
-ndataset3 = nsl.retrieve_dataset(path_to_data_directory='Data')
-exit()
-
-cicids = tmu.datasets.CICIDS2017(split=0.7, shuffle=True, balance=True, binarize=True, bits_per_entry = 16, max_data_entries=450000, data_category_threshold = 5000)
-dataset2 = cicids.retrieve_dataset("Data/Monday-WorkingHours.pcap_ISCX.csv")
-X_train=dataset2["x_train"]
-Y_train=dataset2["y_train"]
-X_test=dataset2["x_test"]
-Y_test=dataset2["y_test"]
-
-wandb.init(project="IoTSecurity-TMUTesting-cicids2017")
-
-s = 10.0
+s = 15.0
 T = 5000
-clauses = 2000
+clauses = 2500
 max_literals = 32
-epochs = 20
-wandb.log({"s":s,"T":T,"clauses":clauses,"max literals":max_literals,"epochs":epochs})
+epochs = 25
 
+import tmu.datasets
+
+kdd = tmu.datasets.KDD99(split=0.7, shuffle=True, booleanize=True, max_bits_per_literal=max_literals, balance=True,
+                         class_size_cutoff=500)
+dataset = kdd.retrieve_dataset()
+X_train = dataset["x_train"]
+Y_train = dataset["y_train"]
+X_test = dataset["x_test"]
+Y_test = dataset["y_test"]
+all_classes = dataset["target"]
+
+Run_Name = "New_booleanizer_test: S:" + str(s) + "T:" + str(T) + "Clauses:" + str(clauses) + "Max_literals:" + str(
+    max_literals) + "Epochs:" + str(epochs)
+Project_name = "IoTSecurity-TMUTesting-KDD"
+
+config = dict(
+    Forget_rate=s,
+    Threshold=T,
+    Clauses=clauses,
+    Max_literals=max_literals,
+    Epochs=epochs
+)
+
+# If you are changing dataset, change the "project" before starting new runs. "name" determines the run name, not project.
+wandb.init(project=Project_name, name=Run_Name, config=config)
+cm = {}
+for label in all_classes:
+    cm[label] = {}
+for label in all_classes:
+    for label2 in all_classes:
+        cm[label][label2] = 0
 
 print("\nAccuracy over " + str(epochs) + " epochs:\n")
-tm = TMClassifier(number_of_clauses=clauses, T=T, s=s, max_included_literals=max_literals, platform='CPU', weighted_clauses=True)
+if torch.cuda.is_available():
+    tm = TMClassifier(number_of_clauses=clauses, T=T, s=s, max_included_literals=max_literals, platform='CUDA',
+                      weighted_clauses=True)
+    print("RUNNING TSETLIN MACHINE ON CUDA GPU")
+    print(torch.cuda.device_count())
+
+else:
+    tm = TMClassifier(number_of_clauses=clauses, T=T, s=s, max_included_literals=max_literals, platform='CPU',
+                      weighted_clauses=True)
+    print("RUNNING TSETLIN MACHINE ON CPU")
 for i in range(epochs):
     start_training = time()
     tm.fit(X_train, Y_train)
     stop_training = time()
 
     start_testing = time()
-    result = 100 * (tm.predict(X_test) == Y_test).mean()
+    pred = tm.predict(X_test)
+    result = 100 * (pred == Y_test).mean()
+    calculate_results(pred, Y_test, all_classes)
     loss = 100 - result
     stop_testing = time()
     traintime = stop_training - start_training
     testtime = stop_testing - start_testing
     wandb.log({"Accuracy": result, "Loss": loss, "Training duration": traintime, "Testing Duration": testtime})
     print("#%d Accuracy: %.2f%% Training: %.2fs Testing: %.2fs" % (i + 1, result, traintime, testtime))
-
 Prediction = tm.predict(X_test)
+
+for i, p in enumerate(Prediction):
+    cm[all_classes[p]][all_classes[Y_test[i]]] += 1
+    cm[all_classes[p]]["class"] = all_classes[p]
+
+cmdf = pd.DataFrame.from_dict(cm).T
+
+# create a wandb.Table() with corresponding columns
+columns = all_classes
+test_table = wandb.Table(data=cmdf, columns=columns)
+wandb.log({"Confusion Matrix": test_table})
 print("Predictions done, calculating score---")
 Total = 0
 Correct = 0
-#conf_matr = confusion_matrix
+# conf_matr = confusion_matrix
 # For each test data item, check if correct prediction
 for test_data_sample in range(len(X_test)):
     Total += 1
