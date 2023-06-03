@@ -17,6 +17,7 @@ The code for each dataset is also made part of CAIR's own tmu library at https:/
 
 ## Step 1: Install tmu
 The install instructions can be found at https://github.com/cair/tmu, but considering that the original implementation used the code structure of CAIR's tmu from February 2023, an older version might be required.
+After following the install instructions, copy "datasets.py" from the surface level of the environment into the "tmu/tmu" directory
 
 ## Step 2: Install tensorflow, pycuda, pytorch, pandas
 This step should be fairly simple, use pip install in your chosen environment
