@@ -27,14 +27,19 @@ Next, log in to wandb with "wandb login <your wandb API token>".
 You'll find your personal login token under user settings on your W&B account.
   
 ## Step 4: Download the relevant datasets
-### KDD99 is hosted by openML and does not require a manual download
-### NSL-KDD: Download link is found at https://www.unb.ca/cic/datasets/nsl.html. You will be required to give some personal information, but this is only so UNB (University of New Brunswick) can see who has accessed their data.
+### KDD99 
+  KDD99 is hosted by openML and does not require a manual download
+### NSL-KDD: 
+  Download link is found at https://www.unb.ca/cic/datasets/nsl.html. You will be required to give some personal information, but this is only so UNB (University of New Brunswick) can see who has accessed their data.
   The current version of THIS code requires that you unzip the dataset file in a folder called "NSL"
-### CIC-IDS2017: Download link is found at https://www.unb.ca/cic/datasets/ids-2017.html. You will be required to give some personal information, but this is only so UNB (University of New Brunswick) can see who has accessed their data.
+### CIC-IDS2017: 
+  Download link is found at https://www.unb.ca/cic/datasets/ids-2017.html. You will be required to give some personal information, but this is only so UNB (University of New Brunswick) can see who has accessed their data.
   The current version of THIS code allows you to re-define the path where this dataset is stored, so no specific folder is required. If you want to use it as is, extract into a folder called "Data".
-### UNSW-NB15: Download link is found at https://research.unsw.edu.au/projects/unsw-nb15-dataset. 
+### UNSW-NB15: 
+  Download link is found at https://research.unsw.edu.au/projects/unsw-nb15-dataset. 
   The current version of THIS code allows you to re-define the path where this dataset is stored, so no specific folder is required. If you want to use it as is, extract into a folder called "UNSW".
-### UNSW-Bot-IoT: Download link is found at https://research.unsw.edu.au/projects/bot-iot-dataset.
+### UNSW-Bot-IoT: 
+  Download link is found at https://research.unsw.edu.au/projects/bot-iot-dataset.
   The current version of THIS code allows you to re-define the path where this dataset is stored, so no specific folder is required. If you want to use it as is, extract into a folder called "Bot_IoT".
   
 ## Step 5: Editing TMU.py before running
