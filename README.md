@@ -3,7 +3,7 @@ This is the code repository for the master's Thesis "Advancing IoT Security with
 by Henning Blomfeldt Thorsen and Ole Gunvaldsen.
 
 # About the repository
-The code used to run the different tests is found in TMU.py
+The code used to run the different tests is found in TMU.py.
 The file contains the function calls to load each dataset, as well as the training/testing loop.
 To run a specific one, uncomment the relevant lines of code, specify your hyperparameters, and run.
 The code also logs to Weights and Biases.
